@@ -7,6 +7,17 @@ Enabling real GPT calls (optional):
 '''
 import argparse, socket, json, time, threading, math, os, ast, operator, collections
 from typing import Any, Dict
+from dotenv import load_dotenv
+import google.generativeai as genai
+
+# ---------------- GPT Client Setup ----------------
+load_dotenv()
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+#models = genai.list_models()
+
+#for m in models:
+#    print(m.name)
 
 # ---------------- LRU Cache (simple) ----------------
 class LRUCache:
@@ -69,11 +80,13 @@ def safe_eval_expr(expr: str) -> float:
 
 # ---------------- GPT Call (stub by default) ----------------
 def call_gpt(prompt: str) -> str:
-    """
-    Stub for GPT call — returns a placeholder string.
-    Replace this with a real OpenAI call if desired.
-    """
-    return f"[GPT-STUB] Received a prompt of length {len(prompt)} chars."
+    """Call Gemini Pro / Flash using Google Generative AI"""
+    try:
+        model = genai.GenerativeModel("gemini-flash-latest")
+        response = model.generate_content(prompt)
+        return response.text
+    except Exception as e:
+        return f"[GEMINI-ERROR] {e}"
 
 # ---------------- Server core ----------------
 def handle_request(msg: Dict[str, Any], cache: LRUCache) -> Dict[str, Any]:
@@ -126,10 +139,6 @@ def serve(host: str, port: int, cache_size: int):
 def handle_client(conn: socket.socket, addr, cache: LRUCache):
     with conn:
         try:
-            # We started edit here
-            CLOSE_MSGS = ("exit", "close", "quit", "shutdown")
-            # We  finished edit here
-            
             raw = b""
             while True:
                 chunk = conn.recv(4096)
@@ -141,14 +150,12 @@ def handle_client(conn: socket.socket, addr, cache: LRUCache):
                     raw = rest
                     msg = json.loads(line.decode("utf-8"))
 
-                    # We started edit here to allow server shutdown commands
-                    data = msg.get("data", {})
-                    cmd = data.get("expr") or data.get("prompt")
-                    if isinstance(cmd, str) and cmd.lower() in CLOSE_MSGS:
-                        print(f"[server] closing connection for {addr}")
+                    # --- Close connection if client requested it ---
+                    if msg.get("mode") == "close":
+                        print(f"[server] closing connection for {addr} (mode=close)")
                         break
-                    # We  finished edit here to allow server shutdown commands
-
+                    
+                    # normal message processing
                     resp = handle_request(msg, cache)
                     out = (json.dumps(resp, ensure_ascii=False) + "\n").encode("utf-8")
                     conn.sendall(out)

@@ -46,7 +46,7 @@ def run_client(host: str, port: int):
 
         # ---- Exit ----
         if user_input.lower() in ("exit", "close", "quit", "shutdown"):
-            payload = {"mode": "calc", "data": {"expr": user_input}, "options": {"cache": use_cache}}
+            payload = {"mode": "close"}
             request(conn, payload)
             print("[client] Closing connection...")
             conn.close()
