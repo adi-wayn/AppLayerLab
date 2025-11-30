@@ -1,21 +1,29 @@
 # client.py
 import argparse, socket, json, sys
 
-def request(host: str, port: int, payload: dict) -> dict:
+def start_connection(host: str, port: int) -> socket.socket:
+    """Start a TCP connection to the given host and port."""
+    s = socket.create_connection((host, port), timeout=5)
+    print(f"[client] Connected to {host}:{port}")
+    return s
+
+def request(conn: socket.socket, payload: dict) -> dict:
     """Send a single JSON-line request and return a single JSON-line response."""
     data = (json.dumps(payload, ensure_ascii=False) + "\n").encode("utf-8")
-    with socket.create_connection((host, port), timeout=5) as s:
-        s.sendall(data)
-        buff = b""
-        while True:
-            chunk = s.recv(4096)
-            if not chunk:
-                break
-            buff += chunk
-            if b"\n" in buff:
-                line, _, _ = buff.partition(b"\n")
+    conn.sendall(data)
+
+    buff = b""
+    while True:
+        chunk = conn.recv(4096)
+        if not chunk:
+            return {"ok": False, "error": "Server closed connection"}
+        buff += chunk
+        if b"\n" in buff:
+            line, _, buff = buff.partition(b"\n")
+            try:
                 return json.loads(line.decode("utf-8"))
-    return {"ok": False, "error": "No response"}
+            except json.JSONDecodeError:
+                return {"ok": False, "error": "Malformed JSON response"}
 
 def main():
     ap = argparse.ArgumentParser(description="Client (calc/gpt over JSON TCP)")
@@ -26,6 +34,8 @@ def main():
     ap.add_argument("--prompt", help="Prompt for mode=gpt")
     ap.add_argument("--no-cache", action="store_true", help="Disable caching")
     args = ap.parse_args()
+
+    conn = start_connection(args.host, args.port)
 
     if args.mode == "calc":
         if not args.expr:
