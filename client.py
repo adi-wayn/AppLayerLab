@@ -7,6 +7,7 @@ def start_connection(host: str, port: int) -> socket.socket:
     print(f"[client] Connected to {host}:{port}")
     return s
 
+
 def request(conn: socket.socket, payload: dict) -> dict:
     """Send a single JSON-line request and return a single JSON-line response."""
     data = (json.dumps(payload, ensure_ascii=False) + "\n").encode("utf-8")
@@ -24,30 +25,86 @@ def request(conn: socket.socket, payload: dict) -> dict:
                 return json.loads(line.decode("utf-8"))
             except json.JSONDecodeError:
                 return {"ok": False, "error": "Malformed JSON response"}
+            
+def print_menu():
+    print("\n=== Client ===")
+    print("Menu:")
+    print("  • Type math expressions (calc mode)")
+    print("  • Type gpt: <prompt> to send GPT prompt")
+    print("  • Type exit/quit/close/shutdown to end the connection")
+    print("  • Type 'cache off' or 'cache on' to control caching")
+    print("  • Type 'help' to view the menu\n")
+            
+            
+def run_client(host: str, port: int):
+    conn = start_connection(host, port)
+    use_cache = True
+    print_menu()
+
+    while True:
+        user_input = input("Enter command: ").strip()
+
+        # ---- Exit ----
+        if user_input.lower() in ("exit", "close", "quit", "shutdown"):
+            payload = {"mode": "calc", "data": {"expr": user_input}, "options": {"cache": use_cache}}
+            request(conn, payload)
+            print("[client] Closing connection...")
+            conn.close()
+            break
+        
+        # ---- Help ----
+        if user_input.lower() == "help":
+            print_menu()
+            continue
+
+        # ---- Toggle cache ----
+        if user_input.lower() == "cache off":
+            use_cache = False
+            print("[client] Cache disabled.")
+            continue
+
+        if user_input.lower() == "cache on":
+            use_cache = True
+            print("[client] Cache enabled.")
+            continue
+        
+        # ---- GPT Mode ----
+        if user_input.startswith("gpt: "):
+            prompt = user_input[5:].strip()
+            if not prompt:
+                print("Prompt cannot be empty.")
+                continue
+
+            payload = {"mode": "gpt", "data": {"prompt": prompt}, "options": {"cache": use_cache}}
+
+            resp = request(conn, payload)
+            print("\n--- Response ---")
+            print(json.dumps(resp, ensure_ascii=False, indent=2))
+            print("----------------\n")
+            continue
+        
+        # ---- Calc Mode ----
+        else:
+            expr = user_input
+            if not expr:
+                print("Expression cannot be empty.")
+                continue
+
+            payload = {"mode": "calc", "data": {"expr": expr}, "options": {"cache": use_cache}}
+
+            resp = request(conn, payload)
+            print("\n--- Response ---")
+            print(json.dumps(resp, ensure_ascii=False, indent=2))
+            print("----------------\n")
+
 
 def main():
     ap = argparse.ArgumentParser(description="Client (calc/gpt over JSON TCP)")
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=5555)
-    ap.add_argument("--mode", choices=["calc", "gpt"], required=True)
-    ap.add_argument("--expr", help="Expression for mode=calc")
-    ap.add_argument("--prompt", help="Prompt for mode=gpt")
-    ap.add_argument("--no-cache", action="store_true", help="Disable caching")
     args = ap.parse_args()
 
-    conn = start_connection(args.host, args.port)
-
-    if args.mode == "calc":
-        if not args.expr:
-            print("Missing --expr", file=sys.stderr); sys.exit(2)
-        payload = {"mode": "calc", "data": {"expr": args.expr}, "options": {"cache": not args.no_cache}}
-    else:
-        if not args.prompt:
-            print("Missing --prompt", file=sys.stderr); sys.exit(2)
-        payload = {"mode": "gpt", "data": {"prompt": args.prompt}, "options": {"cache": not args.no_cache}}
-
-    resp = request(args.host, args.port, payload)
-    print(json.dumps(resp, ensure_ascii=False, indent=2))
+    run_client(args.host, args.port)
 
 if __name__ == "__main__":
     main()

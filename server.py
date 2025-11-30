@@ -120,6 +120,7 @@ def serve(host: str, port: int, cache_size: int):
         print(f"[server] listening on {host}:{port} (cache={cache_size})")
         while True:
             conn, addr = s.accept()
+            print(f"[server] opening connection for {addr}")
             threading.Thread(target=handle_client, args=(conn, addr, cache), daemon=True).start()
 
 def handle_client(conn: socket.socket, addr, cache: LRUCache):
