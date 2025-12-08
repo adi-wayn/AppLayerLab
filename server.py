@@ -6,7 +6,7 @@ Enabling real GPT calls (optional):
 3. Replace call_gpt() in server.py with the real implementation shown in the comments, or keep the stub.
 '''
 import argparse, socket, json, time, threading, math, os, ast, operator, collections
-import LRUCache
+from LRUCache import LRUCache
 from typing import Any, Dict
 from dotenv import load_dotenv
 import google.generativeai as genai

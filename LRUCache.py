@@ -1,4 +1,6 @@
 # ---------------- LRU Cache (simple) ----------------
+import collections
+
 class LRUCache:
     """Minimal LRU cache based on OrderedDict."""
     def __init__(self, capacity: int = 128):
