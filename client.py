@@ -101,7 +101,7 @@ def run_client(host: str, port: int):
 def main():
     ap = argparse.ArgumentParser(description="Client (calc/gpt over JSON TCP)")
     ap.add_argument("--host", default="127.0.0.1")
-    ap.add_argument("--port", type=int, default=5555)
+    ap.add_argument("--port", type=int, default=5554)
     args = ap.parse_args()
 
     run_client(args.host, args.port)
