@@ -35,8 +35,6 @@ def _eval_node(node):
         if isinstance(node.value, (int, float)):
             return node.value
         raise ValueError("illegal constant type")
-    if hasattr(ast, "Num") and isinstance(node, ast.Num):  # legacy fallback
-        return node.n
     if isinstance(node, ast.Name):
         if node.id in _ALLOWED_CONSTS:
             return _ALLOWED_CONSTS[node.id]

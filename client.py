@@ -3,7 +3,7 @@ import argparse, socket, json, sys
 
 def start_connection(host: str, port: int) -> socket.socket:
     """Start a TCP connection to the given host and port."""
-    s = socket.create_connection((host, port), timeout=20)
+    s = socket.create_connection((host, port), timeout=60)
     print(f"[client] Connected to {host}:{port}")
     return s
 
