@@ -3,7 +3,7 @@ import argparse, socket, json, sys
 
 def start_connection(host: str, port: int) -> socket.socket:
     """Start a TCP connection to the given host and port."""
-    s = socket.create_connection((host, port), timeout=5)
+    s = socket.create_connection((host, port), timeout=60)
     print(f"[client] Connected to {host}:{port}")
     return s
 
@@ -101,7 +101,7 @@ def run_client(host: str, port: int):
 def main():
     ap = argparse.ArgumentParser(description="Client (calc/gpt over JSON TCP)")
     ap.add_argument("--host", default="127.0.0.1")
-    ap.add_argument("--port", type=int, default=5555)
+    ap.add_argument("--port", type=int, default=5554)
     args = ap.parse_args()
 
     run_client(args.host, args.port)

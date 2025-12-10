@@ -6,6 +6,7 @@ Enabling real GPT calls (optional):
 3. Replace call_gpt() in server.py with the real implementation shown in the comments, or keep the stub.
 '''
 import argparse, socket, json, time, threading, math, os, ast, operator, collections
+from LRUCache import LRUCache
 from typing import Any, Dict
 from dotenv import load_dotenv
 import google.generativeai as genai
@@ -14,24 +15,7 @@ import google.generativeai as genai
 load_dotenv()
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-# ---------------- LRU Cache (simple) ----------------
-class LRUCache:
-    """Minimal LRU cache based on OrderedDict."""
-    def __init__(self, capacity: int = 128):
-        self.capacity = capacity
-        self._d = collections.OrderedDict()
 
-    def get(self, key):
-        if key not in self._d:
-            return None
-        self._d.move_to_end(key)
-        return self._d[key]
-
-    def set(self, key, value):
-        self._d[key] = value
-        self._d.move_to_end(key)
-        if len(self._d) > self.capacity:
-            self._d.popitem(last=False)
 
 # ---------------- Safe Math Eval (no eval) ----------------
 _ALLOWED_FUNCS = {
@@ -51,8 +35,6 @@ def _eval_node(node):
         if isinstance(node.value, (int, float)):
             return node.value
         raise ValueError("illegal constant type")
-    if hasattr(ast, "Num") and isinstance(node, ast.Num):  # legacy fallback
-        return node.n
     if isinstance(node, ast.Name):
         if node.id in _ALLOWED_CONSTS:
             return _ALLOWED_CONSTS[node.id]
